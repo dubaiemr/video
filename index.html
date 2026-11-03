@@ -5,53 +5,49 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#06231a">
 <title>يوم العلم</title>
 <style>
-  html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; cursor:none; }
-  video { position:fixed; inset:0; width:100vw; height:100vh; object-fit:contain; background:#000; }
+  html, body { margin:0; padding:0; width:100%; height:100%; background:#06231a; overflow:hidden; cursor:none; }
+  video { position:fixed; inset:0; width:100vw; height:100vh; object-fit:contain; background:#06231a; }
   video::-webkit-media-controls, video::-webkit-media-controls-enclosure,
   video::-webkit-media-controls-panel, video::-webkit-media-controls-start-playback-button { display:none !important; -webkit-appearance:none; }
 </style>
 </head>
 <body>
-<video id="v" src="flag_day.mp4" autoplay muted loop playsinline webkit-playsinline preload="auto"
+<video id="v" src="flag_day.mp4?v=2" autoplay muted loop playsinline webkit-playsinline preload="auto"
        disablepictureinpicture controlslist="nodownload nofullscreen noremoteplayback"></video>
 <script>
 (function () {
   var v = document.getElementById('v');
   v.controls = false;
-
   function play() { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
 
-  // keep looping even on browsers where the loop attribute is unreliable
+  // the video itself is a seamless loop, so no fade to black happens at the restart
   v.addEventListener('ended', function () { v.currentTime = 0; play(); });
   v.addEventListener('error', function () { setTimeout(function () { v.load(); play(); }, 3000); });
   v.addEventListener('stalled', function () { setTimeout(play, 1500); });
+  setInterval(function () { if (v.paused || v.ended) play(); }, 3000);
 
-  // watchdog: restart if playback stops for any reason
-  setInterval(function () { if (v.paused || v.ended) play(); }, 4000);
+  // try to keep the screen awake (newer browsers); a playing video also keeps it awake
+  var lock = null;
+  function wake() { try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (l) { lock = l; }, function () {}); } catch (e) {} }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { wake(); play(); } });
+  wake();
 
-  // first tap: go fullscreen and unmute (browsers only allow this after a touch/click)
+  // first tap: fullscreen + sound (browsers only allow this after a touch)
   var armed = true;
   function enter() {
-    if (!armed) return;
-    armed = false;
+    if (!armed) return; armed = false;
     var el = document.documentElement;
     var rq = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
     try { if (rq) rq.call(el); } catch (e) {}
-    v.muted = false;
-    play();
+    v.muted = false; play(); wake();
   }
   document.addEventListener('click', enter);
   document.addEventListener('touchend', enter);
   document.addEventListener('keydown', enter);
-
-  // block context menu / selection / dragging
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-  document.addEventListener('dragstart', function (e) { e.preventDefault(); });
-
-  // optional: ?mute=0 in the address starts with sound where allowed
   play();
 })();
 </script>
